@@ -1,0 +1,25 @@
+# 系统与 IDE 配置
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Docker & 环境变量配置
+.env
+*.env
+docker-compose.override.yml
+
+# Python / FastAPI (backend)
+__pycache__/
+*.py[cod]
+backend/venv/
+backend/env/
+backend/.pytest_cache/
+
+# Flutter / Dart (client)
+client/.dart_tool/
+client/build/
+client/.pub-cache/
+client/.packages
+client/.flutter-plugins
+client/.flutter-plugins-dependencies
