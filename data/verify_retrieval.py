@@ -2,8 +2,8 @@
 import os
 import sys
 
-import psycopg2
-import psycopg2.extras
+import psycopg
+import psycopg.rows
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
@@ -61,7 +61,7 @@ TEST_CASES = [
 
 
 def search(conn, embedding: list[float], top_k: int = 3) -> list[dict]:
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur = conn.cursor(row_factory=psycopg.rows.dict_row)
     embedding_str = f"[{','.join(str(v) for v in embedding)}]"
     cur.execute(
         """

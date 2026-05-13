@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers import problems, analyze
+
 app = FastAPI(title="code2offer", version="0.1.0")
 
 app.add_middleware(
@@ -10,6 +12,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(problems.router)
+app.include_router(analyze.router)
 
 
 @app.get("/api/v1/health")
