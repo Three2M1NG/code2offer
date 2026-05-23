@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:record/record.dart' as record;
@@ -15,7 +16,9 @@ class AudioRecorder {
   Future<void> start({
     void Function(double amplitude)? onAmplitude,
   }) async {
-    if (await _recorder.hasPermission()) {
+    final hasPerm = await _recorder.hasPermission();
+    log('[AudioService] hasPermission: $hasPerm');
+    if (hasPerm) {
       final config = const record.RecordConfig(
         encoder: record.AudioEncoder.aacLc,
         sampleRate: 16000,
@@ -24,6 +27,7 @@ class AudioRecorder {
 
       final tempDir = Directory.systemTemp;
       final path = '${tempDir.path}/code2offer_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      log('[AudioService] Recording to: $path');
 
       await _recorder.start(config, path: path);
 
@@ -33,6 +37,7 @@ class AudioRecorder {
       });
 
       isRecording = true;
+      log('[AudioService] Recording started');
     }
   }
 
@@ -40,6 +45,7 @@ class AudioRecorder {
     isRecording = false;
     _ampSub?.cancel();
     final path = await _recorder.stop();
+    log('[AudioService] Recording stopped, path: $path');
     return path;
   }
 

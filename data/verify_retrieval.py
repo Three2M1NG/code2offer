@@ -79,7 +79,7 @@ def search(conn, embedding: list[float], top_k: int = 3) -> list[dict]:
 
 
 def main():
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg.connect(DATABASE_URL)
 
     print(f"加载 Embedding 模型: {EMBEDDING_MODEL}")
     model = SentenceTransformer(EMBEDDING_MODEL)

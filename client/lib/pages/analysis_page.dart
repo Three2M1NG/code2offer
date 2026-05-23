@@ -99,7 +99,7 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> with SingleTickerPr
   Future<void> _submit() async {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
-    ref.read(analysisProvider.notifier).analyze(text);
+    ref.read(analysisProvider.notifier).analyze(text, problemId: widget.problemId);
     if (!_isFlipped) _flipCard();
   }
 
@@ -107,16 +107,39 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> with SingleTickerPr
     final ok = await _audioRecorder.hasPermission();
     if (!ok) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission denied')),
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Microphone Required'),
+            content: const Text('Please grant microphone permission in Settings to use voice input.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _audioRecorder.hasPermission();
+                },
+                child: const Text('Grant Permission'),
+              ),
+            ],
+          ),
         );
       }
       return;
     }
     setState(() => _isRecording = true);
-    await _audioRecorder.start(onAmplitude: (_) {
-      if (mounted) setState(() {});
-    });
+    try {
+      await _audioRecorder.start(onAmplitude: (_) {
+        if (mounted) setState(() {});
+      });
+    } catch (e) {
+      setState(() => _isRecording = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to start recording: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _stopRecording() async {
@@ -125,8 +148,19 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> with SingleTickerPr
       _awaitingTranscribe = true;
     });
 
-    final path = await _audioRecorder.stop();
-    if (path == null) {
+    String? path;
+    try {
+      path = await _audioRecorder.stop();
+    } catch (e) {
+      setState(() => _awaitingTranscribe = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to stop recording: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
+    if (path == null || path.isEmpty) {
       setState(() => _awaitingTranscribe = false);
       return;
     }
@@ -139,6 +173,10 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> with SingleTickerPr
         _textController.text = text;
         _textController.selection = TextSelection.collapsed(offset: text.length);
         setState(() => _awaitingTranscribe = false);
+        // Auto-submit transcribed text for analysis
+        ref.read(analysisProvider.notifier).reset();
+        ref.read(analysisProvider.notifier).analyze(text, problemId: widget.problemId);
+        if (!_isFlipped) _flipCard();
       }
     } catch (e) {
       try { await File(path).delete(); } catch (_) {}
@@ -203,6 +241,7 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> with SingleTickerPr
                           onPressed: _textController.text.trim().isNotEmpty ? _submit : null,
                         ),
                       ),
+                      onChanged: (_) => setState(() {}),
                       onSubmitted: (_) => _submit(),
                     ),
                   ),
@@ -330,7 +369,7 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> with SingleTickerPr
             DifficultyBadge(difficulty: problem.difficulty),
           ]),
           const SizedBox(height: 8),
-          Wrap(spacing: 4, children: (problem.tags as List).map((t) => Chip(label: Text(t.toString(), style: const TextStyle(fontSize: 11)), padding: EdgeInsets.zero, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap)).toList()),
+          Wrap(spacing: 4, children: (problem.tags as List).map((t) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)), child: Text(t.toString(), style: const TextStyle(fontSize: 11)))).toList()),
           const SizedBox(height: 12),
           Expanded(
             child: SingleChildScrollView(
@@ -471,21 +510,14 @@ class _MicButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = 56.0 + amplitude * 20;
-
     return GestureDetector(
-      onLongPressStart: (_) => onStart(),
-      onLongPressEnd: (_) => onStop(),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        width: size,
-        height: size,
+      onTap: isRecording ? onStop : onStart,
+      child: Container(
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isRecording ? Colors.red : Colors.blue,
-          boxShadow: isRecording
-              ? [BoxShadow(color: Colors.red.withAlpha(80), blurRadius: amplitude * 30, spreadRadius: amplitude * 5)]
-              : null,
         ),
         child: Icon(
           isRecording ? Icons.mic : Icons.mic_none,

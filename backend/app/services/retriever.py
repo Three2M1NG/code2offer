@@ -26,7 +26,10 @@ class Retriever:
         logger.info("Embedding model loaded")
 
     def _get_conn(self):
-        return psycopg.connect(settings.DATABASE_URL)
+        db_url = settings.DATABASE_URL
+        if db_url.startswith("postgresql+"):
+            db_url = db_url.replace("postgresql+psycopg", "postgresql", 1)
+        return psycopg.connect(db_url)
 
     def embed(self, text: str) -> list[float]:
         self._load_model()
@@ -34,6 +37,42 @@ class Retriever:
             text, normalize_embeddings=True, show_progress_bar=False
         )
         return embedding.tolist()
+
+    def get_by_id(self, problem_id: str) -> dict | None:
+        """直接按 ID 查找题目，不走向量检索"""
+        conn = self._get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT id, title, difficulty, description_cn,
+                       solution_approach, solution_code,
+                       complexity_time, complexity_space,
+                       key_points, common_mistakes
+                FROM problems WHERE id = %s
+                """,
+                (problem_id,),
+            )
+            row = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
+
+        if not row:
+            return None
+        return {
+            "id": str(row[0]),
+            "title": row[1],
+            "difficulty": row[2],
+            "description_cn": row[3],
+            "solution_approach": row[4],
+            "solution_code": row[5],
+            "complexity_time": row[6],
+            "complexity_space": row[7],
+            "key_points": row[8],
+            "common_mistakes": row[9],
+            "similarity": 1.0,
+        }
 
     def search(self, user_text: str, top_k: int = 3) -> dict:
         """检索最匹配的题目，返回完整信息 + 相似度"""
@@ -45,7 +84,7 @@ class Retriever:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, title, difficulty, tags, description_cn,
+                SELECT id, title, difficulty, description_cn,
                        solution_approach, solution_code,
                        complexity_time, complexity_space,
                        key_points, common_mistakes,
@@ -68,15 +107,14 @@ class Retriever:
                     "id": str(row[0]),
                     "title": row[1],
                     "difficulty": row[2],
-                    "tags": row[3],
-                    "description_cn": row[4],
-                    "solution_approach": row[5],
-                    "solution_code": row[6],
-                    "complexity_time": row[7],
-                    "complexity_space": row[8],
-                    "key_points": row[9],
-                    "common_mistakes": row[10],
-                    "similarity": round(float(row[11]), 4),
+                    "description_cn": row[3],
+                    "solution_approach": row[4],
+                    "solution_code": row[5],
+                    "complexity_time": row[6],
+                    "complexity_space": row[7],
+                    "key_points": row[8],
+                    "common_mistakes": row[9],
+                    "similarity": round(float(row[10]), 4),
                 }
             )
 

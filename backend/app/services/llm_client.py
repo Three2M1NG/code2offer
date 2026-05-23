@@ -22,16 +22,16 @@ class LLMClient:
         self.primary_model = settings.DEEPSEEK_MODEL
 
         self.fallback = None
-        if settings.ZHIPU_API_KEY and not settings.ZHIPU_API_KEY.startswith("your-"):
+        if settings.BAILIAN_API_KEY and not settings.BAILIAN_API_KEY.startswith("your-"):
             self.fallback = AsyncOpenAI(
-                api_key=settings.ZHIPU_API_KEY,
-                base_url=settings.ZHIPU_BASE_URL,
+                api_key=settings.BAILIAN_API_KEY,
+                base_url=settings.BAILIAN_LLM_BASE_URL,
                 timeout=60.0,
                 max_retries=2,
             )
-            self.fallback_model = settings.ZHIPU_MODEL
+            self.fallback_model = settings.BAILIAN_LLM_MODEL
         else:
-            logger.info("GLM fallback 未配置，将仅使用 DeepSeek")
+            logger.info("百炼 fallback 未配置，将仅使用 DeepSeek")
 
     async def chat_completion(
         self,

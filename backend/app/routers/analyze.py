@@ -26,26 +26,41 @@ class AnalyzeRequest(BaseModel):
     problem_id: str = None
 
 
-async def _stream_analysis(user_text: str, request_id: str):
+async def _stream_analysis(user_text: str, request_id: str, problem_id: str = None):
     """SSE 流式返回 AI 评价，含完整异常处理"""
     t_start = time.time()
 
-    # Step 1: RAG 检索
-    try:
-        search_result = retriever.search(user_text)
-    except Exception as e:
-        logger.error(f"[{request_id}] RAG search failed: {e}")
-        yield f"event: error\ndata: {json.dumps({'error': '题目检索失败，请重试'}, ensure_ascii=False)}\n\n"
-        return
+    # Step 1: 题目检索（优先用 problem_id 精确查题，否则向量检索）
+    problem = None
+    matched = False
+    similarity = 0.0
 
-    problem = search_result.get("problem")
-    matched = search_result.get("matched", False)
+    if problem_id:
+        try:
+            problem = retriever.get_by_id(problem_id)
+            if problem:
+                matched = True
+                similarity = 1.0
+        except Exception as e:
+            logger.error(f"[{request_id}] Direct problem lookup failed: {e}")
+
+    if not problem:
+        try:
+            search_result = retriever.search(user_text)
+            problem = search_result.get("problem")
+            matched = search_result.get("matched", False)
+            if problem:
+                similarity = problem.get("similarity", 0)
+        except Exception as e:
+            logger.error(f"[{request_id}] RAG search failed: {e}")
+            yield f"event: error\ndata: {json.dumps({'error': '题目检索失败，请重试'}, ensure_ascii=False)}\n\n"
+            return
 
     if not matched or not problem:
         yield f"event: info\ndata: {json.dumps({'matched': False, 'message': '未匹配到具体题目，请描述你正在解答的算法题'}, ensure_ascii=False)}\n\n"
         return
 
-    yield f"event: match\ndata: {json.dumps({'matched': True, 'problem': problem['title'], 'difficulty': problem['difficulty'], 'similarity': problem['similarity']}, ensure_ascii=False)}\n\n"
+    yield f"event: match\ndata: {json.dumps({'matched': True, 'problem': problem['title'], 'difficulty': problem['difficulty'], 'similarity': similarity}, ensure_ascii=False)}\n\n"
 
     # Step 2: 组装 Prompt
     try:
@@ -103,7 +118,7 @@ async def analyze_text(request: AnalyzeRequest):
         return {"error": "请输入至少 3 个字的解题思路"}, 400
 
     return StreamingResponse(
-        _stream_analysis(text, str(uuid.uuid4())[:8]),
+        _stream_analysis(text, str(uuid.uuid4())[:8], request.problem_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -178,7 +193,7 @@ async def analyze_audio(
 
         # 文本判卷（复用 SSE 流）
         return StreamingResponse(
-            _stream_analysis(text, request_id),
+            _stream_analysis(text, request_id, problem_id),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

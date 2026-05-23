@@ -55,10 +55,10 @@ def test_fallback_config():
     """Test fallback configuration"""
     from app.config import settings
 
-    if settings.ZHIPU_API_KEY and not settings.ZHIPU_API_KEY.startswith("your-"):
-        print(f"  GLM fallback: configured (model={settings.ZHIPU_MODEL})")
+    if settings.BAILIAN_API_KEY and not settings.BAILIAN_API_KEY.startswith("your-"):
+        print(f"  百炼 fallback: configured (model={settings.BAILIAN_LLM_MODEL})")
     else:
-        print("  GLM fallback: not configured (using DeepSeek only)")
+        print("  百炼 fallback: not configured (using DeepSeek only)")
     print(f"  Primary LLM: {settings.DEEPSEEK_MODEL}")
     print("  [PASS] Fallback config check")
 
@@ -70,7 +70,7 @@ def test_asr_config():
     if asr_client.qwen.configured:
         print("  Qwen3-ASR-Flash: configured")
     else:
-        print("  Qwen3-ASR-Flash: not configured (needs DASHSCOPE_API_KEY)")
+        print("  Qwen3-ASR-Flash: not configured (needs BAILIAN_API_KEY)")
     print("  SenseVoice: reserved for future local integration")
     print("  [PASS] ASR config check")
 

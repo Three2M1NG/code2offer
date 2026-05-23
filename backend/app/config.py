@@ -10,23 +10,24 @@ class Settings:
     DEEPSEEK_BASE_URL: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
-    # LLM Fallback — GLM via Zhipu
-    ZHIPU_API_KEY: str = os.getenv("ZHIPU_API_KEY", "")
-    ZHIPU_BASE_URL: str = os.getenv("ZHIPU_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
-    ZHIPU_MODEL: str = os.getenv("ZHIPU_MODEL", "glm-4-plus")
+    # GLM fallback LLM（智谱/Zhipu 或 阿里云百炼）
+    BAILIAN_API_KEY: str = os.getenv("BAILIAN_API_KEY", "") or os.getenv("ZHIPU_API_KEY", "")
+    BAILIAN_LLM_BASE_URL: str = os.getenv(
+        "BAILIAN_LLM_BASE_URL", ""
+    ) or os.getenv("ZHIPU_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+    BAILIAN_LLM_MODEL: str = os.getenv("BAILIAN_LLM_MODEL", "") or os.getenv("ZHIPU_MODEL", "glm-5.1")
 
-    # ASR — Qwen3-ASR-Flash via DashScope
-    DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "")
-    DASHSCOPE_BASE_URL: str = os.getenv(
-        "DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/api/v1"
-    )
+    # ASR（DashScope / 阿里云百炼）
+    BAILIAN_ASR_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "") or os.getenv("BAILIAN_ASR_API_KEY", "")
+    BAILIAN_ASR_BASE_URL: str = os.getenv("DASHSCOPE_BASE_URL", "") or os.getenv("BAILIAN_ASR_BASE_URL", "https://dashscope.aliyuncs.com/api/v1")
+    BAILIAN_ASR_MODEL: str = os.getenv("BAILIAN_ASR_MODEL", "qwen3-asr-flash")
 
     # ASR — SenseVoice (local model, future)
     SENSEVOICE_MODEL_PATH: str = os.getenv("SENSEVOICE_MODEL_PATH", "")
 
     # Database
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/code2offer"
+        "DATABASE_URL", "postgresql+psycopg://postgres:postgres@localhost:5432/code2offer"
     )
 
     # Monitoring

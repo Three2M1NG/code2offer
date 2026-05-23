@@ -53,14 +53,14 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
 
   AnalysisNotifier(this._api) : super(const AnalysisState());
 
-  Future<void> analyze(String text) async {
+  Future<void> analyze(String text, {String? problemId}) async {
     state = const AnalysisState(loading: true, streamedText: '');
     final dimensions = <DimensionScore>[];
     String summary = '';
     double overallScore = 0;
 
     try {
-      final stream = _api.analyzeStream(text);
+      final stream = _api.analyzeStream(text, problemId: problemId);
       await for (final event in stream) {
         final type = event['_event'] as String? ?? '';
 
@@ -147,14 +147,14 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
     return dimensions;
   }
 
-  Future<void> analyzeAudio(String filePath) async {
+  Future<void> analyzeAudio(String filePath, {String? problemId}) async {
     state = const AnalysisState(loading: true, streamedText: '');
     final dimensions = <DimensionScore>[];
     String summary = '';
     double overallScore = 0;
 
     try {
-      final stream = _api.analyzeAudioStream(filePath);
+      final stream = _api.analyzeAudioStream(filePath, problemId: problemId);
       await for (final event in stream) {
         final type = event['_event'] as String? ?? '';
 

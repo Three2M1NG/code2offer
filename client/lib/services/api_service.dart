@@ -29,10 +29,12 @@ class ApiService {
     return Problem.fromJson(resp.data);
   }
 
-  Stream<Map<String, dynamic>> analyzeStream(String text) async* {
+  Stream<Map<String, dynamic>> analyzeStream(String text, {String? problemId}) async* {
+    final body = <String, dynamic>{'text': text};
+    if (problemId != null && problemId.isNotEmpty) body['problem_id'] = problemId;
     final resp = await _dio.post(
       '/api/v1/analyze',
-      data: {'text': text},
+      data: body,
       options: Options(
         responseType: ResponseType.stream,
         headers: {'Accept': 'text/event-stream'},
@@ -63,9 +65,8 @@ class ApiService {
   }
 
   Future<String> transcribeAudio(String filePath) async {
-    final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath, filename: 'recording.m4a'),
-    });
+    final file = await MultipartFile.fromFile(filePath, filename: 'recording.m4a');
+    final formData = FormData.fromMap({'file': file});
 
     final resp = await _dio.post(
       '/api/v1/transcribe',
@@ -106,10 +107,12 @@ class ApiService {
     return {'status': 'ok'};
   }
 
-  Stream<Map<String, dynamic>> analyzeAudioStream(String filePath) async* {
-    final formData = FormData.fromMap({
+  Stream<Map<String, dynamic>> analyzeAudioStream(String filePath, {String? problemId}) async* {
+    final map = <String, dynamic>{
       'file': await MultipartFile.fromFile(filePath, filename: 'recording.m4a'),
-    });
+    };
+    if (problemId != null && problemId.isNotEmpty) map['problem_id'] = problemId;
+    final formData = FormData.fromMap(map);
 
     final resp = await _dio.post(
       '/api/v1/analyze/audio',
