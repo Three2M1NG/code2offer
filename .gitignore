@@ -3,6 +3,7 @@
 .idea/
 .vscode/
 *.swp
+.claude
 
 # Docker & 环境变量配置
 .env
